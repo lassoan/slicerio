@@ -9,18 +9,19 @@ def read_terminology_entry(terminology_entry):
     terminology['category'] = terminology_items[1].split("^")
     terminology['type'] = terminology_items[2].split("^")
     typeModifier = terminology_items[3].split("^")
-    if any(item!='' for item in typeModifier):
+    if any(item != '' for item in typeModifier):
         terminology['typeModifier'] = typeModifier
 
     anatomicRegion = terminology_items[5].split("^")
-    if any(item!='' for item in anatomicRegion):
+    if any(item != '' for item in anatomicRegion):
         terminology['anatomicContextName'] = terminology_items[4]
         terminology['anatomicRegion'] = anatomicRegion
         anatomicRegionModifier = terminology_items[6].split("^")
-        if any(item!='' for item in anatomicRegionModifier):
+        if any(item != '' for item in anatomicRegionModifier):
             terminology['anatomicRegionModifier'] = anatomicRegionModifier
 
     return terminology
+
 
 def read_segmentation_info(filename):
     import nrrd
@@ -51,9 +52,9 @@ def read_segmentation_info(filename):
             if not tag_str:
                 continue
             key, value = tag_str.split(":", maxsplit=1)
-            if key=="TerminologyEntry":
+            if key == "TerminologyEntry":
                 segment["terminology"] = read_terminology_entry(value)
-            elif key=="Segmentation.Status":
+            elif key == "Segmentation.Status":
                 segment["status"] = value
             else:
                 tags[key] = value
@@ -63,11 +64,13 @@ def read_segmentation_info(filename):
     segmentation_info["segments"] = segments
     return segmentation_info
 
+
 def segment_from_name(segmentation_info, segment_name):
     for segment in segmentation_info["segments"]:
         if segment_name == segment["name"]:
             return segment
     raise KeyError("segment not found by name " + segment_name)
+
 
 def segment_names(segmentation_info):
     names = []
@@ -75,8 +78,10 @@ def segment_names(segmentation_info):
         names.append(segment["name"])
     return names
 
+
 def extract_segments(voxels, header, segmentation_info, segment_names_to_label_values):
     import numpy as np
+    import re
     # Create empty array from last 3 dimensions (output will be flattened to a 3D array)
     output_voxels = np.zeros(voxels.shape[-3:])
     # Copy non-segmentation fields to the extracted header
@@ -95,7 +100,7 @@ def extract_segments(voxels, header, segmentation_info, segment_names_to_label_v
             output_voxels[voxels == input_label_value] = output_label_value
         elif dims == 4:
             inputLayer = segment["layer"]
-            output_voxels[voxels[inputLayer,:,:,:] == input_label_value] = output_label_value
+            output_voxels[voxels[inputLayer, :, :, :] == input_label_value] = output_label_value
         else:
             raise ValueError("Voxel array dimension is invalid")
         # Copy all segment fields corresponding to this segment
@@ -116,7 +121,7 @@ def extract_segments(voxels, header, segmentation_info, segment_names_to_label_v
     # Remove unnecessary 4th dimension (volume is collapsed into 3D)
     if dims == 4:
         # Remove "none" from "none (0,1,0) (0,0,-1) (-1.2999954223632812,0,0)"
-        output_header["space directions"] = output_header["space directions"][-3:,:]
+        output_header["space directions"] = output_header["space directions"][-3:, :]
         # Remove "list" from "list domain domain domain"
         output_header["kinds"] = output_header["kinds"][-3:]
     return output_voxels, output_header

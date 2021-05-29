@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import slicerio
-import time
 import unittest
 
-#DATA_ROOT = os.fspath(Path(__file__).parent.joinpath('data').resolve()
 
 class TestSegmentationRoundtrip(unittest.TestCase):
     """
@@ -51,8 +48,8 @@ class TestSegmentationRoundtrip(unittest.TestCase):
         terminology = segment["terminology"]
         self.assertEqual(terminology['contextName'], 'Segmentation category and type - 3D Slicer General Anatomy list')
         self.assertEqual(terminology['category'], ['SCT', '123037004', 'Anatomical Structure'])
-        self.assertEqual(terminology['type'], [SCT^39607008^Lung])
-        self.assertEqual(terminology['typeModifier'], [SCT^24028007^Right])
+        self.assertEqual(terminology['type'], ['SCT', '39607008', 'Lung'])
+        self.assertEqual(terminology['typeModifier'], ['SCT', '24028007', 'Right'])
         self.assertEqual('anatomicContextName' in terminology, False)
         self.assertEqual('anatomicRegion' in terminology, False)
         self.assertEqual('anatomicRegionModifier' in terminology, False)

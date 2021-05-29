@@ -16,7 +16,7 @@ VERSION = __version__  # pylint:disable=undefined-variable  # noqa: F821
 # Get long description from README.md
 base_path = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(base_path, 'README.md')) as f:
-    LONG_DESCRIPTION = f.read() 
+    LONG_DESCRIPTION = f.read()
 
 opts = dict(
     name="slicerio",
@@ -24,7 +24,7 @@ opts = dict(
     version=VERSION,
     maintainer="Andras Lasso",
     maintainer_email="lasso@queensu.ca",
-    author="Andras Lasso, Daniel Hoyer Iversen, Kyle Sunderland",
+    author="Andras Lasso",
     author_email="lasso@queensu.ca",
     description="Utilities for 3D Slicer",
     long_description=LONG_DESCRIPTION,

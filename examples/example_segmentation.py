@@ -8,6 +8,7 @@ Simple example that reads segmentation metadata and voxels.
 """
 
 import slicerio  # pylint: disable=import-error
+import json
 
 input_segmentation_filepath = slicerio.get_testdata_file('Segmentation.seg.nrrd')
 
@@ -21,5 +22,4 @@ print(f"Segment names: {', '.join(segment_names)}")
 
 segment = slicerio.segment_from_name(segmentation_info, segment_names[4])
 
-import json
 print(json.dumps(segment, sort_keys=False, indent=4))

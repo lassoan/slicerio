@@ -18,6 +18,7 @@ from ._version import __version__, __version_info__
 
 __all__ = [
    'extract_segments',
+   'get_testdata_file',
    'read_segmentation_info',
    'segment_from_name',
    'segment_names',
