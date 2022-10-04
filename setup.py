@@ -44,7 +44,7 @@ opts = dict(
       "Topic :: System :: Networking"
       ],
     packages=find_packages(),
-    install_requires=['pynrrd', 'numpy'],
+    install_requires=['pynrrd', 'numpy', 'requests'],
 )
 
 if __name__ == '__main__':

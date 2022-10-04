@@ -82,16 +82,20 @@ def segment_names(segmentation_info):
 def extract_segments(voxels, header, segmentation_info, segment_names_to_label_values):
     import numpy as np
     import re
+
     # Create empty array from last 3 dimensions (output will be flattened to a 3D array)
     output_voxels = np.zeros(voxels.shape[-3:])
+
     # Copy non-segmentation fields to the extracted header
     output_header = {}
     for key in header.keys():
         if not re.match("^Segment[0-9]+_.+", key):
             output_header[key] = header[key]
+
     # Copy extracted segments
     dims = len(voxels.shape)
     for output_segment_index, segment_name_to_label_value in enumerate(segment_names_to_label_values):
+
         # Copy relabeled voxel data
         segment = segment_from_name(segmentation_info, segment_name_to_label_value[0])
         input_label_value = segment["labelValue"]
@@ -103,6 +107,7 @@ def extract_segments(voxels, header, segmentation_info, segment_names_to_label_v
             output_voxels[voxels[inputLayer, :, :, :] == input_label_value] = output_label_value
         else:
             raise ValueError("Voxel array dimension is invalid")
+
         # Copy all segment fields corresponding to this segment
         for key in header.keys():
             prefix = "Segment{0}_".format(segment["index"])
@@ -118,10 +123,12 @@ def extract_segments(voxels, header, segmentation_info, segment_names_to_label_v
             else:
                 value = header[key]
             output_header["Segment{0}_".format(output_segment_index) + field_name] = value
+
     # Remove unnecessary 4th dimension (volume is collapsed into 3D)
     if dims == 4:
         # Remove "none" from "none (0,1,0) (0,0,-1) (-1.2999954223632812,0,0)"
         output_header["space directions"] = output_header["space directions"][-3:, :]
         # Remove "list" from "list domain domain domain"
         output_header["kinds"] = output_header["kinds"][-3:]
+
     return output_voxels, output_header

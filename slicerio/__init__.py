@@ -13,6 +13,7 @@ Bugs and other issues can be reported in the issue tracker: https://www.github.c
 """
 
 from .segmentation import extract_segments, read_segmentation_info, segment_from_name, segment_names
+from .server import start_server, stop_server, is_server_running, reset_server, view_file
 from .data_helper import get_testdata_file
 from ._version import __version__, __version_info__
 
@@ -22,6 +23,11 @@ __all__ = [
    'read_segmentation_info',
    'segment_from_name',
    'segment_names',
+   'start_server',
+   'stop_server',
+   'is_server_running',
+   'reset_server',
+   'view_file',
    '__version__',
    '__version_info__'
    ]
