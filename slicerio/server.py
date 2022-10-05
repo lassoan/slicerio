@@ -3,8 +3,8 @@
 import logging
 import requests
 
-# Initially stores default server port.
-# If successfully co
+# Port number of the local Slicer server.
+# It can be modified before starting the server if the default port number is not desirable.
 SERVER_PORT = 2016
 
 def start_server(slicer_executable=None, timeoutSec=60):
@@ -31,7 +31,7 @@ def start_server(slicer_executable=None, timeoutSec=60):
 def stop_server():
     """Stop local Slicer server.
     """
-    response = requests.delete(f"http://localhost:{SERVER_PORT}/slicer/gui")
+    response = requests.delete(f"http://localhost:{SERVER_PORT}/system")
     return response.json()
 
 def is_server_running():
@@ -39,7 +39,7 @@ def is_server_running():
     Returns true if a responsive Slicer instance is found with Web Server and Slicer API enabled.
     """
     try:
-        response = requests.get(f"http://localhost:{SERVER_PORT}/slicer/gui/version", timeout=3)
+        response = requests.get(f"http://localhost:{SERVER_PORT}/slicer/system/version", timeout=3)
         if 'applicationName' in response.json():
             # Found a responsive Slicer
             return True
@@ -47,13 +47,94 @@ def is_server_running():
         logging.debug("Application is not available: "+str(e))
     return False
 
-def reset_server():
-    """Clear all data loaded into the local Slicer server.
+def _node_query_parameters(name, id, class_name):
+    param_list = []
+    import urllib
+    if name:
+        param_list.append(f"name={urllib.request.quote(name, safe='')}")
+    if id:
+        param_list.append(f"id={urllib.request.quote(id, safe='')}")
+    if class_name:
+        param_list.append(f"class={urllib.request.quote(class_name, safe='')}")
+    return '&'.join(param_list)
+
+def _report_error(response):
+    if response.ok:
+        return
+    if response.headers['Content-Type'] == 'application/json':
+        if "message" in response.json():
+            raise RuntimeError(response.json()["message"])
+    raise RuntimeError("Request failed")
+
+def node_remove(name=None, id=None, class_name=None):
+    """Remove data nodes from the local Slicer server.
+    Nodes can be selected using name, id, and/or class_name.
     """
-    response = requests.delete(f"http://localhost:{SERVER_PORT}/slicer/mrml")
+    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml"
+    node_query = _node_query_parameters(name, id, class_name)
+    if node_query:
+        api_url += "?" + node_query
+    response = requests.delete(api_url)
+    _report_error(response)
+
+def node_properties(name=None, id=None, class_name=None):
+    """Get properties of data nodes on the local Slicer server.
+    Nodes can be selected using name, id, and/or class_name.
+    """
+    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/properties"
+    node_query = _node_query_parameters(name, id, class_name)
+    if node_query:
+        api_url += "?" + node_query
+    response = requests.get(api_url)
+    _report_error(response)
+    response_json = response.json()
+    properties = [response_json[key] for key in response_json]
+    return properties
+
+def node_ids(name=None, id=None, class_name=None):
+    """Get list of ids of nodes availalbe on the local Slicer server.
+    Nodes can be selected using name, id, and/or class_name.
+    """
+    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/ids"
+    node_query = _node_query_parameters(name, id, class_name)
+    if node_query:
+        api_url += "?" + node_query
+    response = requests.get(api_url)
+    _report_error(response)
     return response.json()
 
-def view_file(file_path, file_type=None, properties=None, auto_start=True, timeout_sec=60, slicer_executable=None):
+def node_names(name=None, id=None, class_name=None):
+    """Get list of names of nodes availalbe on the local Slicer server.
+    Nodes can be selected using name, id, and/or class_name.
+    """
+    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/names"
+    node_query = _node_query_parameters(name, id, class_name)
+    if node_query:
+        api_url += "?" + node_query
+    response = requests.get(api_url)
+    _report_error(response)
+    return response.json()
+
+def file_save(file_path, name=None, id=None, class_name=None, properties=None):
+    """Save node into file on the local Slicer server.
+    :param path: local filename or URL of the file to write
+    :param properties: dictionary of additional properties. For example, `useCompression` specifies if the written file will be compressed.
+    """
+    import urllib
+    url_encoded_path = urllib.request.quote(file_path, safe='')
+    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/file?localfile={url_encoded_path}"
+    node_query = _node_query_parameters(name, id, "")
+    if node_query:
+        api_url += "&" + node_query
+    if properties:
+        for key in properties:
+            url_encoded_key = urllib.request.quote(key.encode(), safe='')
+            url_encoded_value = urllib.request.quote(str(properties[key]).encode(), safe='')
+            api_url += f"&{url_encoded_key}={url_encoded_value}"
+    response = requests.get(api_url)
+    _report_error(response)
+
+def file_load(file_path, file_type=None, properties=None, auto_start=True, timeout_sec=60, slicer_executable=None):
     """Load a file into the local Slicer server.
     :param path: local filename or URL of the file to open
     :param type: type of the file to open `VolumeFile` (nrrd, nii, ... files; this is the default), `SegmentationFile` (nrrd, nii, ... files),
@@ -65,7 +146,7 @@ def view_file(file_path, file_type=None, properties=None, auto_start=True, timeo
         argument or `SLICER_EXECUTABLE` environment variable to be set to a Slicer executable (version 5.2 or later),
         such as `/Applications/Slicer.app/Contents/MacOS/Slicer` or `c:/Users/username/appdata/Local/NA-MIC/Slicer 5.2.0/Slicer.exe`
     :param slicer_executable: Slicer application main executable. Used if `auto_start` is enabled.
-    :return: dictionary of load result. `loadedNodeIDs` contain list of loaded node IDs (that may be used in further requests).
+    :return: list of loaded node IDs (they can be used in further queries).
     """
     import urllib
     if file_type is None:
@@ -86,12 +167,21 @@ def view_file(file_path, file_type=None, properties=None, auto_start=True, timeo
                 url_encoded_key = urllib.request.quote(key.encode(), safe='')
                 url_encoded_value = urllib.request.quote(str(properties[key]).encode(), safe='')
                 api_url += f"&{url_encoded_key}={url_encoded_value}"
+
+    retry_after_starting_server = True
     try:
         response = requests.post(api_url)
+        retry_after_starting_server = False
     except requests.exceptions.ConnectionError as e:
         if not auto_start:
             raise
+
+    if retry_after_starting_server:
         # Try again, with starting a server first
-        start_server(slicer_executable)
+        server_process = start_server(slicer_executable)
         response = requests.post(api_url)
-    return response.json()
+
+    _report_error(response)
+
+    response_json = response.json()
+    return response_json["loadedNodeIDs"] if "loadedNodeIDs" in response_json else []

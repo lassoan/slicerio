@@ -53,27 +53,33 @@ nrrd.write(output_filename, extracted_voxels, extracted_header)
 
 ### View files in 3D Slicer
 
-It is useful to load several files in a single Slicer instance, because then there is no need to wait for multiple
-application startups and multiple data sets can be compared in one environment. This can be achieved by activating
-3D Slicer's Web Server module, which provides a web API to control the application.
+The `server` module allows using Slicer as a data viewer in any Python environment.
+All files are loaded into a single Slicer instance, which eliminates the wait time for application startup
+and also allows analyzing, comparing multiple data sets in one workspace. The feature is implemented by using
+[3D Slicer's built-in Web Server module](https://slicer.readthedocs.io/en/latest/user_guide/modules/webserver.html), which offers data access via a REST API.
 
 For example, an image file can be loaded with the command below. The command starts a new Slicer application instance
 with the web API enabled.
 
 ```python
-import slicerio
 import os
-slicerio.view_file("path/to/SomeImage.nrrd", slicer_executable=f"{os.environ["LOCALAPPDATA"]}/NA-MIC/Slicer 5.2.0/Slicer.exe")
+import slicerio.server
+
+# Load from remote URL
+slicerio.server.file_load("https://github.com/rbumm/SlicerLungCTAnalyzer/releases/download/SampleData/LungCTAnalyzerChestCT.nrrd")
+
+# Load from local file
+# A Slicer application instance (with Web Server enabled) is automatically started, if it is not running already.
+slicerio.server.file_load("path/to/SomeImage.nrrd", slicer_executable=f"{os.environ["LOCALAPPDATA"]}/NA-MIC/Slicer 5.2.0/Slicer.exe")
 ```
 
-A segmentation file can be loaded in the same Slicer instance:
+A segmentation file can be loaded by specifying the `SegmentationFile` file type:
 
 ```python
-import slicerio
-slicerio.view_file("path/to/Segmentation.seg.nrrd", "SegmentationFile")
+slicerio.server.file_load("path/to/Segmentation.seg.nrrd", "SegmentationFile")
 ```
 
-Supported file types:
+#### Supported file types
 - image files (nrrd, nii.gz, ...): `VolumeFile`
 - segmentation file (.seg.nrrd, nrrd, nii.gz, ...): `SegmentationFile`
 - model file (.stl, .ply, .vtk, .vtp, .vtu, ...): `ModelFile`
@@ -83,3 +89,47 @@ Supported file types:
 - text file (.txt, .json, ...): `TextFile`
 - sequence file (.mrb, .seq.nrrd): `SequenceFile`
 - Slicer scene file (.mrml, .mrb): `SceneFile`
+
+### Inspect data in 3D Slicer
+
+Metadata of data sets loaded into the server can be obtained using `node_properties` function:
+
+```python
+properties= slicerio.server.node_properties(name="MRHead")[0]
+properties["ClassName"]
+properties["ImageData"]["Extent"]
+
+properties = slicerio.server.node_properties(id=segmentationId)[0]
+segments = properties["Segmentation"]["Segments"]
+for segmentId in segments:
+   print(f"{segments[segmentId]['Name']} color: {segments[segmentId]['Color']}")
+```
+
+List of available nodes can be retrieved using `node_names` and `node_ids`functions:
+
+```python
+# Retreve node names of all images
+slicerio.server.node_names(class_name="vtkMRMLVolumeNode")
+
+# Retrieve all node IDs
+slicerio.server.node_ids(class_name="vtkMRMLVolumeNode")
+```
+
+Nodes can be removed from the workspace:
+
+```python
+# Remove node by name
+slicerio.server.node_remove(name="MRHead")
+
+# Clear the whole scene
+slicerio.server.node_remove()
+```
+
+### Export files from 3D Slicer
+
+Data sets created in Slicer (e.g., segmentations, landmark point sets), which can be retrieved by writing into file.
+
+```python
+# Save the node identified by `MRHead` node name, uncompressed, into the specified file.
+slicerio.server.file_save("c:/tmp/MRHeadSaved.nrrd", name="MRHead", properties={'useCompression': False})
+```
