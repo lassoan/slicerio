@@ -96,13 +96,13 @@ Metadata of data sets loaded into the server can be obtained using `node_propert
 
 ```python
 properties= slicerio.server.node_properties(name="MRHead")[0]
-properties["ClassName"]
-properties["ImageData"]["Extent"]
+print(properties["ClassName"])
+print(properties["ImageData"]["Extent"])
 
 properties = slicerio.server.node_properties(id=segmentationId)[0]
 segments = properties["Segmentation"]["Segments"]
 for segmentId in segments:
-   print(f"{segments[segmentId]['Name']} color: {segments[segmentId]['Color']}")
+   print(f"Segment name: {segments[segmentId]['Name']} - color: {segments[segmentId]['Color']}")
 ```
 
 List of available nodes can be retrieved using `node_names` and `node_ids`functions:
