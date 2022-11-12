@@ -77,6 +77,19 @@ def node_remove(name=None, id=None, class_name=None):
     response = requests.delete(api_url)
     _report_error(response)
 
+def node_reload(name=None, id=None, class_name=None):
+    """Reload the node from that file it was originally loaded from.
+    This can be used for updating a node that was loaded using `file_load()`,
+    to prevent proliferation of displayed nodes.
+    Nodes can be selected using name, id, and/or class_name.
+    """
+    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml"
+    node_query = _node_query_parameters(name, id, class_name)
+    if node_query:
+        api_url += "?" + node_query
+    response = requests.put(api_url)
+    _report_error(response)
+
 def node_properties(name=None, id=None, class_name=None):
     """Get properties of data nodes on the local Slicer server.
     Nodes can be selected using name, id, and/or class_name.
