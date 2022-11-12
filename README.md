@@ -76,7 +76,13 @@ slicerio.server.file_load("path/to/SomeImage.nrrd", slicer_executable=f"{os.envi
 A segmentation file can be loaded by specifying the `SegmentationFile` file type:
 
 ```python
-slicerio.server.file_load("path/to/Segmentation.seg.nrrd", "SegmentationFile")
+nodeID = slicerio.server.file_load("path/to/Segmentation.seg.nrrd", "SegmentationFile")
+```
+
+If the loaded file is modified then it can be reloaded from the updated file:
+
+```python
+slicerio.server.node_reload(id=nodeID)
 ```
 
 #### Supported file types
