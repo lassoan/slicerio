@@ -134,6 +134,10 @@ def file_save(file_path, name=None, id=None, class_name=None, properties=None):
     :param properties: dictionary of additional properties. For example, `useCompression` specifies if the written file will be compressed.
     """
     import urllib
+
+    if file_path is not None:
+        file_path = str(file_path)
+
     url_encoded_path = urllib.request.quote(file_path, safe='')
     api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/file?localfile={url_encoded_path}"
     node_query = _node_query_parameters(name, id, "")
@@ -162,6 +166,10 @@ def file_load(file_path, file_type=None, properties=None, auto_start=True, timeo
     :return: list of loaded node IDs (they can be used in further queries).
     """
     import urllib
+
+    if file_path is not None:
+        file_path = str(file_path)
+
     if file_type is None:
         file_type = "VolumeFile"
     p = urllib.parse.urlparse(file_path)
