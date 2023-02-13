@@ -31,7 +31,7 @@ def start_server(slicer_executable=None, timeoutSec=60):
 def stop_server():
     """Stop local Slicer server.
     """
-    response = requests.delete(f"http://localhost:{SERVER_PORT}/system")
+    response = requests.delete(f"http://127.0.0.1:{SERVER_PORT}/system")
     return response.json()
 
 def is_server_running():
@@ -39,7 +39,7 @@ def is_server_running():
     Returns true if a responsive Slicer instance is found with Web Server and Slicer API enabled.
     """
     try:
-        response = requests.get(f"http://localhost:{SERVER_PORT}/slicer/system/version", timeout=3)
+        response = requests.get(f"http://127.0.0.1:{SERVER_PORT}/slicer/system/version", timeout=3)
         if 'applicationName' in response.json():
             # Found a responsive Slicer
             return True
@@ -70,7 +70,7 @@ def node_remove(name=None, id=None, class_name=None):
     """Remove data nodes from the local Slicer server.
     Nodes can be selected using name, id, and/or class_name.
     """
-    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml"
+    api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml"
     node_query = _node_query_parameters(name, id, class_name)
     if node_query:
         api_url += "?" + node_query
@@ -83,7 +83,7 @@ def node_reload(name=None, id=None, class_name=None):
     to prevent proliferation of displayed nodes.
     Nodes can be selected using name, id, and/or class_name.
     """
-    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml"
+    api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml"
     node_query = _node_query_parameters(name, id, class_name)
     if node_query:
         api_url += "?" + node_query
@@ -94,7 +94,7 @@ def node_properties(name=None, id=None, class_name=None):
     """Get properties of data nodes on the local Slicer server.
     Nodes can be selected using name, id, and/or class_name.
     """
-    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/properties"
+    api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml/properties"
     node_query = _node_query_parameters(name, id, class_name)
     if node_query:
         api_url += "?" + node_query
@@ -108,7 +108,7 @@ def node_ids(name=None, id=None, class_name=None):
     """Get list of ids of nodes availalbe on the local Slicer server.
     Nodes can be selected using name, id, and/or class_name.
     """
-    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/ids"
+    api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml/ids"
     node_query = _node_query_parameters(name, id, class_name)
     if node_query:
         api_url += "?" + node_query
@@ -120,7 +120,7 @@ def node_names(name=None, id=None, class_name=None):
     """Get list of names of nodes availalbe on the local Slicer server.
     Nodes can be selected using name, id, and/or class_name.
     """
-    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/names"
+    api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml/names"
     node_query = _node_query_parameters(name, id, class_name)
     if node_query:
         api_url += "?" + node_query
@@ -139,7 +139,7 @@ def file_save(file_path, name=None, id=None, class_name=None, properties=None):
         file_path = str(file_path)
 
     url_encoded_path = urllib.request.quote(file_path, safe='')
-    api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml/file?localfile={url_encoded_path}"
+    api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml/file?localfile={url_encoded_path}"
     node_query = _node_query_parameters(name, id, "")
     if node_query:
         api_url += "&" + node_query
@@ -177,12 +177,12 @@ def file_load(file_path, file_type=None, properties=None, auto_start=True, timeo
         # Slicer URL - use it as is. For example:
         # slicer://viewer/?studyUID=1.2.826.0.1.3680043.8.498.77209180964150541470378654317482622226&dicomweb_endpoint=http%3A%2F%2F130.15.7.119:2016%2Fdicom&bulk_retrieve=0
         url_encoded_path = urllib.request.quote(file_path, safe='')
-        api_url = f"http://localhost:{SERVER_PORT}/slicer/open?url={url_encoded_path}"
+        api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/open?url={url_encoded_path}"
     else:
         # Local file path or remote download path
         path_type = 'url' if p.scheme in ['http', 'https'] else 'localfile'
         url_encoded_path = urllib.request.quote(file_path, safe='')
-        api_url = f"http://localhost:{SERVER_PORT}/slicer/mrml?{path_type}={url_encoded_path}&filetype={file_type}"
+        api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml?{path_type}={url_encoded_path}&filetype={file_type}"
         if properties:
             for key in properties:
                 url_encoded_key = urllib.request.quote(key.encode(), safe='')
