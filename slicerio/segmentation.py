@@ -84,7 +84,7 @@ def extract_segments(voxels, header, segmentation_info, segment_names_to_label_v
     import re
 
     # Create empty array from last 3 dimensions (output will be flattened to a 3D array)
-    output_voxels = np.zeros(voxels.shape[-3:])
+    output_voxels = np.zeros(voxels.shape[-3:], dtype=voxels.dtype)
 
     # Copy non-segmentation fields to the extracted header
     output_header = {}
