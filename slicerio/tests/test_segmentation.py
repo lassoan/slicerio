@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import nrrd
 import slicerio
 import unittest
 
@@ -54,6 +55,15 @@ class TestSegmentationRoundtrip(unittest.TestCase):
         self.assertEqual('anatomicRegion' in terminology, False)
         self.assertEqual('anatomicRegionModifier' in terminology, False)
 
+    def test_segmentation_pixel_type(self):
+        input_segmentation_filepath = slicerio.get_testdata_file('Segmentation.seg.nrrd')
+        voxels, header = nrrd.read(input_segmentation_filepath)
+        segmentation_info = slicerio.read_segmentation_info(input_segmentation_filepath)
+        extracted_voxels, extracted_header = slicerio.extract_segments(
+            voxels, header, segmentation_info, [('ribs', 1), ('right lung', 2)]
+        )
+
+        self.assertEqual(extracted_voxels.dtype, voxels.dtype)
 
 if __name__ == '__main__':
     unittest.main()
