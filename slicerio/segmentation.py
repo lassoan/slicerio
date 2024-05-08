@@ -626,12 +626,12 @@ def terminology_entry_matches(terminology1, terminology2):
     # Optional anatomic region
     if "anatomicRegion" in terminology1 and "anatomicRegion" in terminology2:
         # Both have anatomic region
-        if not terminology_code_matches(terminology1['anatomicRegion'], terminology2['anatomicRegion']):
+        if not terminology_code_matches(terminology1["anatomicRegion"], terminology2["anatomicRegion"]):
             return False
         # Optional anatomic region modifier
         if "anatomicRegionModifier" in terminology1 and "anatomicRegionModifier" in terminology2:
             # Both have anatomic region modifier
-            if not terminology_code_matches(terminology1['anatomicRegionModifier'][0], terminology2['anatomicRegionModifier'][0]):
+            if not terminology_code_matches(terminology1["anatomicRegionModifier"][0], terminology2["anatomicRegionModifier"][0]):
                 return False
         elif "anatomicRegionModifier" in terminology1 or "anatomicRegionModifier" in terminology2:
             # Only one of the two has anatomic region modifier
@@ -642,12 +642,13 @@ def terminology_entry_matches(terminology1, terminology2):
     # Terminologies match
     return True
 
+
 def segment_id_from_name(segmentation, segment_name):
     segments = segmentation["segments"]
     for segment in segments:
-        if segment_name == segments[segment_id]["name"]:
-            return segment_id
-    raise KeyError("segment_id not found by name " + segment_name)
+        if segment_name == segments["name"]:
+            return segments["id"]
+    raise KeyError("Segment not found by name " + segment_name)
 
 
 def segment_names(segmentation):
