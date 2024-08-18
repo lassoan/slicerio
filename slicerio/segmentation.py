@@ -87,13 +87,13 @@ def terminology_entry_to_string(terminology):
 
 
 def generate_unique_segment_id(existing_segment_ids):
-    """Generate a unique segment ID, i.e., an ID that is not among existing_segment_ids."""
-    i = 1
+    """Generate a unique segment ID, i.e., an ID that is not among existing_segment_ids.
+    It follows DICOM convention to allow using this ID in DICOM Segmentation objects."""
+    import uuid
     while True:
-        segment_id = "Segment_" + str(i)
+        segment_id = f"2.25.{uuid.uuid4().int}"
         if segment_id not in existing_segment_ids:
             return segment_id
-        i += 1
 
 
 def read_segmentation(filename, skip_voxels=False):
