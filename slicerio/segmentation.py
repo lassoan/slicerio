@@ -272,9 +272,9 @@ def read_segmentation(filename, skip_voxels=False):
             space_directions = header[header_key]
             if space_directions.shape[0] == 4:
                 # 4D segmentation, skip first (nan) row
-                ijkToSpace[0:3, 0:3] = header[header_key][1:4, 0:3]
+                ijkToSpace[0:3, 0:3] = header[header_key][1:4, 0:3].T
             else:
-                ijkToSpace[0:3, 0:3] = header[header_key]
+                ijkToSpace[0:3, 0:3] = header[header_key].T
             continue
         elif header_key == "Segmentation_ContainedRepresentationNames":
             # Segmentation_ContainedRepresentationNames:=Binary labelmap|Closed surface|
@@ -443,7 +443,7 @@ def write_segmentation(file, segmentation, compression_level=9, index_order=None
         #   [ 0.        ,  1.        ,  0.        ],
         #   [ 0.        ,  0.        , -1.        ],
         #   [-1.29999542,  0.        ,  0.        ]]))
-    space_directions = np.array(ijkToLPS)[0:3, 0:3]
+    space_directions = np.array(ijkToLPS)[0:3, 0:3].T
 
     # Add 4th dimension metadata if array is 4-dimensional (there are overlapping segments)
     dims = len(voxels.shape)
