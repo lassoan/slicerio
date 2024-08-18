@@ -97,7 +97,7 @@ def generate_unique_segment_id(existing_segment_ids):
 
 
 def read_segmentation(filename, skip_voxels=False):
-    """Read segmentation metadata from a .seg.nrrd file and store it in a dict.
+    """Read segmentation metadata from a .seg.nrrd file or NIFTI file and store it in a dict.
 
     Example header:
 
@@ -228,11 +228,54 @@ def read_segmentation(filename, skip_voxels=False):
     import numpy as np
     import re
 
-    if skip_voxels:
-        header = nrrd.read_header(filename)
-        voxels = None
-    else:
-        voxels, header = nrrd.read(filename)
+    try:
+        if skip_voxels:
+            header = nrrd.read_header(filename)
+            voxels = None
+        else:
+            voxels, header = nrrd.read(filename)
+    except nrrd.errors.NRRDError as e:
+
+        # Not a NRRD file, maybe it is a NIFTI file that contains label image.
+        # In that case, read just the voxels and IJK to LPS matrix.
+        if filename.endswith(".nii") or filename.endswith(".nii.gz"):
+            try:
+                import nibabel as nib
+            except ImportError:
+                raise ImportError("nibabel is required to read NIFTI files")
+            try:
+                nifti_image = nib.load(filename)
+            except Exception as e:
+                raise IOError(f"Failed to read NIFTI file: {str(e)}")
+
+            segmentation = OrderedDict()
+
+            if filename.endswith(".nii.gz"):
+                segmentation["encoding"] = "gzip"
+
+            # NIFTI affine is IJK to RAS, we convert it to IJK to LPS
+            segmentation["ijkToLPS"] = np.diag([-1, -1, 1, 1]).dot(nifti_image.affine)
+
+            segmentation["voxels"] = None if skip_voxels else nifti_image.get_fdata().astype(np.int16)
+
+            # Add segment for each label value
+            label_values = np.unique(segmentation["voxels"])
+            label_values.sort()
+            # remove zero label (corresponds to background)
+            label_values = label_values[label_values != 0]
+            segments = []
+            for label_value in label_values:
+                segment = OrderedDict()
+                segment["labelValue"] = int(label_value)
+                segment["name"] = f"Segment_{label_value}"
+                segments.append(segment)
+            if segments:
+                segmentation["segments"] = segments
+
+            return segmentation
+
+        else:
+            raise IOError(f"Failed to read segmentation file: {str(e)}")
 
     segmentation = OrderedDict()
 

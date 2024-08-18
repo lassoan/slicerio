@@ -49,7 +49,6 @@ Code meaning (third component of codes, such as "Anatomical Structure", "Ribs", 
 
 ```python
 import slicerio
-import nrrd
 
 input_filename = "path/to/Segmentation.seg.nrrd"
 output_filename = "path/to/SegmentationExtracted.seg.nrrd"
@@ -60,7 +59,7 @@ segments_to_labels = [
 
 segmentation = slicerio.read_segmentation(input_filename)
 extracted_segmentation = slicerio.extract_segments(segmentation, segments_to_labels)
-slicerio.write_segmentation(extracted_segmentation, output_filename)
+slicerio.write_segmentation(output_filename, extracted_segmentation)
 ```
 
 #### Extract segments by name
@@ -69,7 +68,6 @@ It is strongly recommended to look up segments by standard terminology codes ins
 
 ```python
 import slicerio
-import nrrd
 
 input_filename = "path/to/Segmentation.seg.nrrd"
 output_filename = "path/to/SegmentationExtracted.seg.nrrd"
@@ -77,7 +75,7 @@ segment_names_to_labels = [("ribs", 10), ("right lung", 12), ("left lung", 6)]
 
 segmentation = slicerio.read_segmentation(input_filename)
 extracted_segmentation = slicerio.extract_segments(segmentation, segment_names_to_labels)
-slicerio.write_segmentation(extracted_segmentation, output_filename)
+slicerio.write_segmentation(output_filename, extracted_segmentation)
 ```
 
 ### Create segmentation file from numpy array
@@ -94,13 +92,11 @@ origin = [10, 30, 15]
 
 segmentation = {
    "voxels": voxels,
-   "image": {
-      "encoding": "gzip",
-      "ijkToLPS": [[ spacing[0], 0., 0., origin[0]],
-                   [ 0., spacing[1], 0., origin[1]],
-                   [ 0., 0., spacing[2], origin[2]],
-                   [ 0., 0., 0., 1. ]]
-   },
+   "encoding": "gzip",
+   "ijkToLPS": [[ spacing[0], 0., 0., origin[0]],
+                [ 0., spacing[1], 0., origin[1]],
+                [ 0., 0., spacing[2], origin[2]],
+                [ 0., 0., 0., 1. ]]
    "segmentation": {
       "containedRepresentationNames": ["Binary labelmap", "Closed surface"],
       # "masterRepresentation": "Binary labelmap",
@@ -134,6 +130,36 @@ segmentation = {
 }
 
 slicerio.write_segmentation(segmentation, "path/to/Segmentation.seg.nrrd")
+```
+
+### Create segmentation file from NIFTI labelmap image file
+
+```python
+input_nifti_filename = "path/to/Segmentation.nii.gz"
+output_filename = "path/to/Segmentation.seg.nrrd"
+
+segmentation = slicerio.read_segmentation(input_nifti_filename)
+
+# Specify segment metadata for each label value
+# (NIFTI cannot store segment metadata in the image file)
+segmentation["segments"] = [
+    { "labelValue": 1,
+      "color": [0.9, 0.9, 0.6],
+      "name": "ribs",
+      "terminology": {
+          "contextName": "Segmentation category and type - 3D Slicer General Anatomy list",
+          "category": ["SCT", "123037004", "Anatomical Structure"],
+          "type": ["SCT", "113197003", "Rib"] } },
+    { "labelValue": 3,
+      "color": [0.9, 0.1, 0.2],
+      "name": "spine",
+      "terminology": {
+          "contextName": "Segmentation category and type - 3D Slicer General Anatomy list",
+          "category": ["SCT", "123037004", "Anatomical Structure"],
+          "type": ["SCT", "122494005", "Cervical spine"] } },
+   ]
+
+slicerio.write_segmentation(output_filename, segmentation)
 ```
 
 ### View files in 3D Slicer
