@@ -8,6 +8,8 @@ Python utilities for [3D Slicer](https://www.slicer.org) interoperability.
 
 The package contains utility functions for reading and writing segmentation files and convenience functions for using 3D Slicer via its web API. More functions will be added in the future.
 
+See [this page](UsingStandardTerminology.md) to learn more about how standard terms can be used to describe content of segmentation files.
+
 ## Installation
 
 Using [pip](https://pip.pypa.io/en/stable/):
@@ -40,7 +42,7 @@ print("First segment info:\n" + json.dumps(segment0, sort_keys=False, indent=4))
 
 #### Extract segments by terminology
 
-Example for getting a 3D NRRD file that has label values assigned based on standard terminology codes.
+Example for getting a 3D NRRD file that has label values assigned based on [standard terminology codes](UsingStandardTerminology.md).
 Terminology is a `dict` that must specify `category` and `type` codes and may optionally also specify `typeModifier`, `anatomicRegion`, and `anatomicRegionModifier`. Each code is specifed by a triplet of "coding scheme designator", "code value", "code meaning" in a list.
 
 Coding scheme designator is typically `SCT` (SNOMED-CT) for clinical images. You can find codes in the [SNOMED-CT browser](https://browser.ihtsdotools.org/). When code exists for "entire X" and "structure of X" then always use the "structure" code ("entire" code has a very strict meaning that is rarely applicable in practice).
@@ -64,7 +66,7 @@ slicerio.write_segmentation(output_filename, extracted_segmentation)
 
 #### Extract segments by name
 
-It is strongly recommended to look up segments by standard terminology codes instead of segment name, as spelling errors and inconsistent use of names often causes mismatch.
+It is strongly recommended to look up segments by [standard terminology codes](UsingStandardTerminology.md) instead of segment name, as spelling errors and inconsistent use of names often causes mismatch.
 
 ```python
 import slicerio
