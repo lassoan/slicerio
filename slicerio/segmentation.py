@@ -763,7 +763,7 @@ def extract_segments(segmentation, segment_names_to_label_values, minimalExtent=
             # Copy relabeled voxel data
             input_label_value = segment["labelValue"]
             if dims == 3:
-                segment_voxel_positions = np.where(output_voxels[voxels == input_label_value])
+                segment_voxel_positions = np.where(voxels[:, :, :] == input_label_value)
             elif dims == 4:
                 inputLayer = segment["layer"]
                 segment_voxel_positions = np.where(voxels[inputLayer, :, :, :] == input_label_value)

@@ -56,28 +56,49 @@ class TestSegmentationRoundtrip(unittest.TestCase):
         self.assertEqual('anatomicRegionModifier' in terminology, False)
 
     def test_extract_segments(self):
-        input_segmentation_filepath = slicerio.get_testdata_file('Segmentation.seg.nrrd')
-        segmentation = slicerio.read_segmentation(input_segmentation_filepath)
+        input_segmentation_filenames = ['Segmentation.seg.nrrd', 'SegmentationOverlapping.seg.nrrd']
+        for input_segmentation_filename in input_segmentation_filenames:
 
-        # Extract segments by name
-        extracted_segmentation_by_name = slicerio.extract_segments(
-            segmentation, [('ribs', 1), ('right lung', 3)]
-        )
+            input_segmentation_filepath = slicerio.get_testdata_file(input_segmentation_filename)
+            segmentation = slicerio.read_segmentation(input_segmentation_filepath)
 
-        # Verify pixel type of new segmentation
-        self.assertEqual(extracted_segmentation_by_name["voxels"].dtype, segmentation["voxels"].dtype)
+            # Extract segments by name
+            extracted_segmentation_by_name = slicerio.extract_segments(
+                segmentation, [('ribs', 1), ('right lung', 3)]
+            )
 
-        # Extract segments by terminology
-        extracted_segmentation_by_terminology = slicerio.extract_segments(
-            segmentation, [
-                # Note: intentionally using "ribs" instead of "Rib" (terminology value meaning) or "ribs" (segment name)
-                # to test that matching is based on terminology code value.
-                ({"category": ["SCT", "123037004", "Anatomical Structure"], "type": ["SCT", "113197003", "Ribs"]}, 1),
-                ({"category": ["SCT", "123037004", "Anatomical Structure"], "type": ["SCT", "39607008", "Lung"], "typeModifier": ["SCT", "24028007", "Right"]}, 3)
-                ])
-        
-        # Compare the two segmentations
-        self._assert_segmentations_equal(extracted_segmentation_by_name, extracted_segmentation_by_terminology)
+            # Verify pixel type of new segmentation
+            self.assertEqual(extracted_segmentation_by_name["voxels"].dtype, segmentation["voxels"].dtype)
+
+            # Verify that the extracted segmentation contains the requested label values
+            # SegmentationOverlapping.seg.nrrd contains an additional segment overlapping with ribs and right lung,
+            # but the sphere is not in the extracted segmentation, so it should not affect the extracted output.
+            import numpy as np
+            self.assertEqual(len(np.where(extracted_segmentation_by_name["voxels"] == 0)[0]), 514119) # background
+            self.assertEqual(len(np.where(extracted_segmentation_by_name["voxels"] == 1)[0]), 8487) # ribs
+            self.assertEqual(len(np.where(extracted_segmentation_by_name["voxels"] == 2)[0]), 0) # unused label
+            self.assertEqual(len(np.where(extracted_segmentation_by_name["voxels"] == 3)[0]), 34450) # right lung
+            self.assertEqual(len(np.where(extracted_segmentation_by_name["voxels"] == 4)[0]), 0) # unused label
+
+            # Extract segments by terminology
+            extracted_segmentation_by_terminology = slicerio.extract_segments(
+                segmentation, [
+                    # Note: intentionally using "ribs" instead of "Rib" (terminology value meaning) or "ribs" (segment name)
+                    # to test that matching is based on terminology code value.
+                    ({"category": ["SCT", "123037004", "Anatomical Structure"], "type": ["SCT", "113197003", "Ribs"]}, 1),
+                    ({"category": ["SCT", "123037004", "Anatomical Structure"], "type": ["SCT", "39607008", "Lung"], "typeModifier": ["SCT", "24028007", "Right"]}, 3)
+                    ])
+            
+            # Compare the two segmentations
+            self._assert_segmentations_equal(extracted_segmentation_by_name, extracted_segmentation_by_terminology)
+
+            # Verify that the extracted segmentation contains the requested label values
+            import numpy as np
+            self.assertEqual(len(np.where(extracted_segmentation_by_terminology["voxels"] == 0)[0]), 514119) # background
+            self.assertEqual(len(np.where(extracted_segmentation_by_terminology["voxels"] == 1)[0]), 8487) # ribs
+            self.assertEqual(len(np.where(extracted_segmentation_by_terminology["voxels"] == 2)[0]), 0) # unused label
+            self.assertEqual(len(np.where(extracted_segmentation_by_terminology["voxels"] == 3)[0]), 34450) # right lung
+            self.assertEqual(len(np.where(extracted_segmentation_by_terminology["voxels"] == 4)[0]), 0) # unused label
 
     def test_segmentation_write(self):
         import numpy as np
@@ -88,7 +109,6 @@ class TestSegmentationRoundtrip(unittest.TestCase):
         
         # Get a temporary filename
         output_segmentation_filepath = tempfile.mktemp() + '.seg.nrrd'
-        print("Temporary filename:", output_segmentation_filepath)
 
         # Write and re-read the segmentation
         slicerio.write_segmentation(output_segmentation_filepath, segmentation)
@@ -139,7 +159,6 @@ class TestSegmentationRoundtrip(unittest.TestCase):
 
         # Get a temporary filename
         output_segmentation_filepath = tempfile.mktemp() + '.seg.nrrd'
-        print("Temporary filename:", output_segmentation_filepath)
 
         # Write and re-read the segmentation
         slicerio.write_segmentation(output_segmentation_filepath, segmentation)
