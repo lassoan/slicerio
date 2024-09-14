@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slicerio"
+dynamic = ["version"]
+description = "Utilities for 3D Slicer"
+readme = "README.md"
+requires-python = ">=3.6"
+keywords = ["3DSlicer", "medical imaging", "segmentation"]
+authors = [{ name = "Andras Lasso", email = "lasso@queensu.ca" }]
+maintainers = [{ name = "Andras Lasso", email = "lasso@queensu.ca" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: System :: Networking",
+]
+
+dependencies = ["pynrrd", "numpy", "requests"]
+
+[project.optional-dependencies]
+dev = ["build", "mypy", "pre-commit", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/lassoan/slicerio"
+Download = "https://github.com/lassoan/slicerio/archive/master.zip"
+
+[tool.setuptools.dynamic]
+version = {attr = "slicerio.__version__"}
+
+[tool.flake8]
+max-line-length = 180
