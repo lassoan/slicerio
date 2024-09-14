@@ -125,7 +125,7 @@ def node_properties(name=None, id=None, class_name=None):
     return properties
 
 def node_ids(name=None, id=None, class_name=None):
-    """Get list of ids of nodes availalbe on the local Slicer server.
+    """Get list of ids of nodes available on the local Slicer server.
     Nodes can be selected using name, id, and/or class_name.
     """
     api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml/ids"
@@ -137,7 +137,7 @@ def node_ids(name=None, id=None, class_name=None):
     return response.json()
 
 def node_names(name=None, id=None, class_name=None):
-    """Get list of names of nodes availalbe on the local Slicer server.
+    """Get list of names of nodes available on the local Slicer server.
     Nodes can be selected using name, id, and/or class_name.
     """
     api_url = f"http://127.0.0.1:{SERVER_PORT}/slicer/mrml/names"
@@ -213,13 +213,13 @@ def file_load(file_path, file_type=None, properties=None, auto_start=True, timeo
     try:
         response = requests.post(api_url)
         retry_after_starting_server = False
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         if not auto_start:
             raise
 
     if retry_after_starting_server:
         # Try again, with starting a server first
-        server_process = start_server(slicer_executable)
+        start_server(slicer_executable)
         response = requests.post(api_url)
 
     _report_error(response)
