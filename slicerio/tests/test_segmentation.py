@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import nrrd
 import slicerio
 import unittest
 
@@ -88,7 +87,7 @@ class TestSegmentationRoundtrip(unittest.TestCase):
                     ({"category": ["SCT", "123037004", "Anatomical Structure"], "type": ["SCT", "113197003", "Ribs"]}, 1),
                     ({"category": ["SCT", "123037004", "Anatomical Structure"], "type": ["SCT", "39607008", "Lung"], "typeModifier": ["SCT", "24028007", "Right"]}, 3)
                     ])
-            
+
             # Compare the two segmentations
             self._assert_segmentations_equal(extracted_segmentation_by_name, extracted_segmentation_by_terminology)
 
@@ -101,12 +100,11 @@ class TestSegmentationRoundtrip(unittest.TestCase):
             self.assertEqual(len(np.where(extracted_segmentation_by_terminology["voxels"] == 4)[0]), 0) # unused label
 
     def test_segmentation_write(self):
-        import numpy as np
         import tempfile
 
         input_segmentation_filepath = slicerio.get_testdata_file('Segmentation.seg.nrrd')
         segmentation = slicerio.read_segmentation(input_segmentation_filepath)
-        
+
         # Get a temporary filename
         output_segmentation_filepath = tempfile.mktemp() + '.seg.nrrd'
 
@@ -179,7 +177,7 @@ class TestSegmentationRoundtrip(unittest.TestCase):
         """
         import numpy as np
         for key in segmentation1:
-            if type(segmentation1[key]) == np.ndarray or type(segmentation2[key]) == np.ndarray:
+            if isinstance(segmentation1[key], np.ndarray) or isinstance(segmentation2[key], np.ndarray):
                 self.assertTrue(np.allclose(segmentation1[key], segmentation2[key]), f"Failed for key {key}")
             elif key == "segments":
                 for segment1, segment2 in zip(segmentation1[key], segmentation2[key]):
@@ -187,7 +185,7 @@ class TestSegmentationRoundtrip(unittest.TestCase):
                         self.assertEqual(segment1[segmentAttribute], segment2[segmentAttribute], f"Failed for key {key}[{segmentAttribute}]")
             else:
                 equal = (segmentation1[key] == segmentation2[key])
-                if type(equal) == list:
+                if isinstance(equal, list):
                     self.assertTrue(all(equal), f"Failed for key {key}")
                 else:
                     self.assertTrue(equal, f"Failed for key {key}")

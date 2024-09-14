@@ -1,0 +1,23 @@
+repos:
+    -   repo: https://github.com/pre-commit/pre-commit-hooks
+        rev: v4.6.0
+        hooks:
+        -   id: check-yaml
+            args: [--allow-multiple-documents]
+        -   id: end-of-file-fixer
+            exclude: '.*\.nrrd$'
+        -   id: trailing-whitespace
+            exclude: '.*\.nrrd$'
+        -   id: check-executables-have-shebangs
+
+    -   repo: https://github.com/astral-sh/ruff-pre-commit
+        rev: v0.6.5
+        hooks:
+        -   id: ruff
+            args: [--fix]
+
+    -   repo: https://github.com/crate-ci/typos
+        rev: v1.24.5
+        hooks:
+        -   id: typos
+            exclude: '.*\.nrrd$'

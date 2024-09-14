@@ -43,7 +43,7 @@ print("First segment info:\n" + json.dumps(segment0, sort_keys=False, indent=4))
 #### Extract segments by terminology
 
 Example for getting a 3D [NRRD](SegmentationFileFormat.md) file that has label values assigned based on [standard terminology codes](UsingStandardTerminology.md).
-Terminology is a `dict` that must specify `category` and `type` codes and may optionally also specify `typeModifier`, `anatomicRegion`, and `anatomicRegionModifier`. Each code is specifed by a triplet of "coding scheme designator", "code value", "code meaning" in a list.
+Terminology is a `dict` that must specify `category` and `type` codes and may optionally also specify `typeModifier`, `anatomicRegion`, and `anatomicRegionModifier`. Each code is specified by a triplet of "coding scheme designator", "code value", "code meaning" in a list.
 
 Coding scheme designator is typically `SCT` (SNOMED-CT) for clinical images. You can find codes in the [SNOMED-CT browser](https://browser.ihtsdotools.org/). When code exists for "entire X" and "structure of X" then always use the "structure" code ("entire" code has a very strict meaning that is rarely applicable in practice).
 
@@ -227,7 +227,7 @@ for segmentId in segments:
 List of available nodes can be retrieved using `node_names` and `node_ids`functions:
 
 ```python
-# Retreve node names of all images
+# Retrieve node names of all images
 slicerio.server.node_names(class_name="vtkMRMLVolumeNode")
 
 # Retrieve all node IDs

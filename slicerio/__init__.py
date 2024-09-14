@@ -1,4 +1,4 @@
-"""slicerio package -- Python utilities for readin and writing 3D Slicer supporte data sets.
+"""slicerio package -- Python utilities for readin and writing 3D Slicer supported data sets.
 
 -----------
 Quick Start

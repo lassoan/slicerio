@@ -143,7 +143,7 @@ def read_segmentation(filename, skip_voxels=False):
         Segmentation_ConversionParameters:=Collapse labelmaps|1|Merge the labelmaps into as few shared labelmaps as possible 1 = created labelmaps will be shared if possible without overwriting each other.&Compute surface normals|1|Compute surface normals. 1 (default) = surface normals are computed. 0 = surface normals are not computed (slightly faster but produces less smooth surface display).&Crop to reference image geometry|0|Crop the model to the extent of reference geometry. 0 (default) = created labelmap will contain the entire model. 1 = created labelmap extent will be within reference image extent.&Decimation factor|0.0|Desired reduction in the total number of polygons. Range: 0.0 (no decimation) to 1.0 (as much simplification as possible). Value of 0.8 typically reduces data set size by 80% without losing too much details.&Default slice thickness|0.0|Default thickness for contours if slice spacing cannot be calculated.&End capping|1|Create end cap to close surface inside contours on the top and bottom of the structure.\n0 = leave contours open on surface exterior.\n1 (default) = close surface by generating smooth end caps.\n2 = close surface by generating straight end caps.&Fractional labelmap oversampling factor|1|Determines the oversampling of the reference image geometry. All segments are oversampled with the same value (value of 1 means no oversampling).&Joint smoothing|0|Perform joint smoothing.&Oversampling factor|1|Determines the oversampling of the reference image geometry. If it's a number, then all segments are oversampled with the same value (value of 1 means no oversampling). If it has the value "A", then automatic oversampling is calculated.&Reference image geometry|3.0468759536743195;0;0;-193.0959930419922;0;3.0468759536743195;0;-216.39599609374994;0;0;9.999999999999998;-340.24999999999994;0;0;0;1;0;127;0;127;0;33;|Image geometry description string determining the geometry of the labelmap that is created in course of conversion. Can be copied from a volume, using the button.&Smoothing factor|-0.5|Smoothing factor. Range: 0.0 (no smoothing) to 1.0 (strong smoothing).&Threshold fraction|0.5|Determines the threshold that the closed surface is created at as a fractional value between 0 and 1.&
         Segmentation_MasterRepresentation:=Binary labelmap
         Segmentation_ReferenceImageExtentOffset:=0 0 0
-        
+
     Example header in case of overlapping segments:
 
         NRRD0004
@@ -184,7 +184,7 @@ def read_segmentation(filename, skip_voxels=False):
                 {"name": "Threshold fraction", "value": "0.5", "description": "Determines the threshold that the closed surface is created at as a fractional value between 0 and 1."}
             ],
             "masterRepresentation": "Binary labelmap",
-            "referenceImageExtentOffset": [0, 0, 0]           
+            "referenceImageExtentOffset": [0, 0, 0]
             "segments": [
                 {
                     "color": [0.992157, 0.909804, 0.619608],
@@ -281,7 +281,6 @@ def read_segmentation(filename, skip_voxels=False):
 
     segments_fields = {}  # map from segment index to key:value map
 
-    multiple_layers = False
     spaceToLps = np.eye(4)
     ijkToSpace = np.eye(4)
 
@@ -302,9 +301,11 @@ def read_segmentation(filename, skip_voxels=False):
             continue
         elif header_key == 'kinds':
             if header[header_key] == ['domain', 'domain', 'domain']:
-                multiple_layers = False
+                # multiple_layers = False
+                pass
             elif header[header_key] == ['list', 'domain', 'domain', 'domain']:
-                multiple_layers = True
+                # multiple_layers = True
+                pass
             else:
                 raise IOError("kinds field must be 'domain domain domain' or 'list domain domain domain'")
             continue
@@ -348,7 +349,7 @@ def read_segmentation(filename, skip_voxels=False):
             # Segmentation_ReferenceImageExtentOffset:=0 0 0
             segmentation["referenceImageExtentOffset"] = [int(i) for i in header[header_key].split(" ")]
             continue
-        
+
         segment_match = re.match("^Segment([0-9]+)_(.+)", header_key)
         if segment_match:
             # Store in segment_fields (segmentation field)
@@ -358,7 +359,7 @@ def read_segmentation(filename, skip_voxels=False):
                 segments_fields[segment_index] = {}
             segments_fields[segment_index][segment_key] = header[header_key]
             continue
-        
+
         segmentation[header_key] = header[header_key]
 
     # Compute voxel to physical transformation matrix
@@ -500,7 +501,6 @@ def write_segmentation(file, segmentation, compression_level=9, index_order=None
         #   [ 0.        ,  1.        ,  0.        ],
         #   [ 0.        ,  0.        , -1.        ],
         #   [-1.29999542,  0.        ,  0.        ]]))
-        nan_column = np.array()
         space_directions = np.row_stack(([np.nan, np.nan, np.nan], space_directions))
     elif dims != 3:
         raise ValueError("Unsupported number of dimensions: " + str(dims))
@@ -520,7 +520,7 @@ def write_segmentation(file, segmentation, compression_level=9, index_order=None
 
     # Add segments fields to the header
 
-    # Get list of segment IDs (needed if we need to genereate new ID)
+    # Get list of segment IDs (needed if we need to generate new ID)
     segment_ids = set()
     for output_segment_index, segment in enumerate(segmentation["segments"]):
         if "id" in segment:
@@ -543,7 +543,7 @@ def write_segmentation(file, segmentation, compression_level=9, index_order=None
                 # Segment0_Name:=Segment_1
                 field_name = "Name"
                 value = segment[segment_key]
-            elif segment_key == "id":    
+            elif segment_key == "id":
                 # Segment0_ID:=Segment_1
                 field_name = "ID"
                 value = segment[segment_key]
@@ -589,7 +589,7 @@ def write_segmentation(file, segmentation, compression_level=9, index_order=None
                 value = segment[segment_key]
 
             output_header[f"Segment{output_segment_index}_{field_name}"] = value
-                
+
         if "id" not in segment:
             # If user has not specified ID, generate a unique one
             new_segment_id = generate_unique_segment_id(segment_ids)
@@ -689,8 +689,8 @@ def terminology_entry_matches(terminology1, terminology2):
 def segment_id_from_name(segmentation, segment_name):
     segments = segmentation["segments"]
     for segment in segments:
-        if segment_name == segments["name"]:
-            return segments["id"]
+        if segment_name == segment["name"]:
+            return segment["id"]
     raise KeyError("Segment not found by name " + segment_name)
 
 
@@ -730,7 +730,7 @@ def extract_segments(segmentation, segment_names_to_label_values, minimalExtent=
     output_segmentation = OrderedDict()
 
     output_segmentation["voxels"] = output_voxels
-    
+
     for key in segmentation:
         if key == "voxels":
             continue
@@ -752,7 +752,6 @@ def extract_segments(segmentation, segment_names_to_label_values, minimalExtent=
             segments = segments_from_terminology(segmentation, segment_name_to_label_value[0])
         if not segments:
             raise ValueError(f"Segment not found: {segment_name_to_label_value[0]}")
-        segment_id = segments[0]["id"]
         output_segment = copy.deepcopy(segments[0])
         output_label_value = segment_name_to_label_value[1]
         output_segment["labelValue"] = output_label_value
