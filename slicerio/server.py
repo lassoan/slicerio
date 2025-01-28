@@ -16,9 +16,29 @@ def start_server(slicer_executable=None, timeoutSec=60):
     import subprocess
     import time
     if not slicer_executable:
-        if 'SLICER_EXECUTABLE' not in os.environ:
-            raise ValueError('SLICER_EXECUTABLE environment variable is not specified')
-        slicer_executable = os.environ['SLICER_EXECUTABLE']
+        if 'SLICER_EXECUTABLE' in os.environ:
+            slicer_executable = os.environ['SLICER_EXECUTABLE']
+            # Add .exe extension if not provided (case insensitive)
+            if not slicer_executable.lower().endswith('.exe'):
+                slicer_executable += '.exe'
+            # Raise error if the file does not exist
+            if not os.path.exists(slicer_executable):
+                raise ValueError(f"SLICER_EXECUTABLE environment variable points to a file that does not exist: {slicer_executable}")
+        # If slicer class is specified in Windows registry then get the path from there
+        elif os.name == 'nt':
+            import winreg
+            try:
+                with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, "Slicer\\shell\\open\\command") as key:
+                    slicer_open_file_command = winreg.QueryValue(key, None)
+                    # Get the executable by parsing the command (we need to take into account quotes in the command)
+                    import shlex
+                    slicer_executable = shlex.split(slicer_open_file_command)[0]
+            except Exception as e:
+                # Failed to get Slicer executable path from Windows registry, use default
+                slicer_executable = "Slicer.exe"
+        else:
+            # Use default Slicer executable name
+            slicer_executable = "Slicer"
     p = subprocess.Popen([slicer_executable, "--python-code", f"wslogic = getModuleLogic('WebServer'); wslogic.port={SERVER_PORT}; wslogic.addDefaultRequestHandlers(); wslogic.start()"])
     start = time.time()
     connected = False
