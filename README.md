@@ -164,6 +164,30 @@ segmentation["segments"] = [
 slicerio.write_segmentation(output_filename, segmentation)
 ```
 
+### Convert legacy markup fiducial file (.fcsv) to current format (.mrk.json)
+
+Older versions of 3D Slicer saved point markup nodes as `.fcsv` files. Current versions use `.mrk.json`. Use `fcsv_to_markups_json` to convert:
+
+```python
+import slicerio
+
+# Convert in place — writes F_1.mrk.json next to F_1.fcsv
+slicerio.fcsv_to_markups_json("path/to/F_1.fcsv")
+
+# Or specify the output path explicitly
+slicerio.fcsv_to_markups_json("path/to/F_1.fcsv", "path/to/output.mrk.json")
+```
+
+To read the control points without writing a file:
+
+```python
+import slicerio
+
+markups = slicerio.read_markups_fcsv("path/to/F_1.fcsv")
+for cp in markups["markups"][0]["controlPoints"]:
+    print(cp["label"], cp["position"])
+```
+
 ### View files in 3D Slicer
 
 The `server` module allows using Slicer as a data viewer in any Python environment.
