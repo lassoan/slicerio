@@ -14,7 +14,11 @@ Bugs and other issues can be reported in the issue tracker: https://www.github.c
 
 from .segmentation import extract_segments, read_segmentation, write_segmentation, segment_from_name, segment_names
 from .data_helper import get_testdata_file
-from ._version import __version__, __version_info__
+from importlib.metadata import version, PackageNotFoundError
+try:
+    __version__ = version("slicerio")
+except PackageNotFoundError:
+    __version__ = "unknown"
 
 __all__ = [
    'extract_segments',
@@ -24,5 +28,4 @@ __all__ = [
    'segment_from_name',
    'segment_names',
    '__version__',
-   '__version_info__'
    ]
