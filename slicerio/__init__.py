@@ -12,7 +12,8 @@ Bugs and other issues can be reported in the issue tracker: https://www.github.c
 
 """
 
-from .segmentation import extract_segments, read_segmentation, write_segmentation, segment_from_name, segment_names
+from .segmentation import (add_segment, create_segmentation, extract_segments, read_segmentation, write_segmentation,
+                           segment_from_id, segment_from_name, segment_mask, segment_names)
 from .markups import fcsv_to_markups_json, read_markups_fcsv
 from .data_helper import get_testdata_file
 from importlib.metadata import version, PackageNotFoundError
@@ -22,13 +23,17 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 __all__ = [
+   'add_segment',
+   'create_segmentation',
    'extract_segments',
    'fcsv_to_markups_json',
    'get_testdata_file',
    'read_markups_fcsv',
    'read_segmentation',
    'write_segmentation',
+   'segment_from_id',
    'segment_from_name',
+   'segment_mask',
    'segment_names',
    '__version__',
    ]

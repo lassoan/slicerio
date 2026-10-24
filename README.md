@@ -80,11 +80,60 @@ extracted_segmentation = slicerio.extract_segments(segmentation, segment_names_t
 slicerio.write_segmentation(output_filename, extracted_segmentation)
 ```
 
+### Get the mask of a segment
+
+```python
+import slicerio
+
+segmentation = slicerio.read_segmentation("path/to/Segmentation.seg.nrrd")
+
+# Binary mask (numpy bool array, i, j, k axes) of a segment specified by its ID or name
+mask = slicerio.segment_mask(segmentation, "ribs")
+ijk_to_lps = segmentation["ijkToLPS"]
+```
+
+### Create segmentation file from binary masks
+
+Segments may overlap: each is stored in the first layer where it does not overlap other segments, as 3D Slicer stores them.
+
+```python
+import numpy as np
+import slicerio
+
+# Image geometry
+spacing = [0.5, 0.5, 0.8]
+origin = [10, 30, 15]
+ijk_to_lps = [[spacing[0], 0., 0., origin[0]],
+              [0., spacing[1], 0., origin[1]],
+              [0., 0., spacing[2], origin[2]],
+              [0., 0., 0., 1.]]
+
+segmentation = slicerio.create_segmentation([100, 120, 150], ijk_to_lps)
+
+ribs = np.zeros([100, 120, 150], bool)
+ribs[30:50, 20:60, 70:100] = True
+slicerio.add_segment(segmentation, ribs, {"id": "ribs", "color": [0.9, 0.9, 0.6]})
+
+spine = np.zeros([100, 120, 150], bool)
+spine[70:90, 80:110, 60:110] = True
+slicerio.add_segment(segmentation, spine, {
+    "id": "spine",
+    "terminology": {
+        "contextName": "Segmentation category and type - 3D Slicer General Anatomy list",
+        "category": ["SCT", "123037004", "Anatomical Structure"],
+        "type": ["SCT", "122494005", "Cervical spine"]}})
+
+slicerio.write_segmentation("path/to/Segmentation.seg.nrrd", segmentation)
+```
+
 ### Create segmentation file from numpy array
 
 ```python
+import numpy as np
+import slicerio
+
 # Create segmentation with two labels (1, 3)
-voxels = np.zeros([100, 120, 150])
+voxels = np.zeros([100, 120, 150], dtype=np.uint8)
 voxels[30:50, 20:60, 70:100] = 1
 voxels[70:90, 80:110, 60:110] = 3
 
@@ -98,12 +147,8 @@ segmentation = {
    "ijkToLPS": [[ spacing[0], 0., 0., origin[0]],
                 [ 0., spacing[1], 0., origin[1]],
                 [ 0., 0., spacing[2], origin[2]],
-                [ 0., 0., 0., 1. ]]
-   "segmentation": {
-      "containedRepresentationNames": ["Binary labelmap", "Closed surface"],
-      # "masterRepresentation": "Binary labelmap",
-      # "referenceImageExtentOffset": [0, 0, 0],
-   },
+                [ 0., 0., 0., 1. ]],
+   "containedRepresentationNames": ["Binary labelmap", "Closed surface"],
    "segments": [
       {
          "id": "Segment_1",
@@ -131,7 +176,7 @@ segmentation = {
    ]
 }
 
-slicerio.write_segmentation(segmentation, "path/to/Segmentation.seg.nrrd")
+slicerio.write_segmentation("path/to/Segmentation.seg.nrrd", segmentation)
 ```
 
 ### Create segmentation file from NIFTI labelmap image file
