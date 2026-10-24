@@ -501,7 +501,7 @@ def write_segmentation(file, segmentation, compression_level=9, index_order=None
         #   [ 0.        ,  1.        ,  0.        ],
         #   [ 0.        ,  0.        , -1.        ],
         #   [-1.29999542,  0.        ,  0.        ]]))
-        space_directions = np.row_stack(([np.nan, np.nan, np.nan], space_directions))
+        space_directions = np.vstack(([np.nan, np.nan, np.nan], space_directions))
     elif dims != 3:
         raise ValueError("Unsupported number of dimensions: " + str(dims))
 
@@ -700,6 +700,119 @@ def segment_names(segmentation):
     for segment in segments:
         names.append(segment["name"])
     return names
+
+
+def segment_from_id(segmentation, segment_id):
+    """Return the segment (dict) of the segmentation that has the specified ID. Raises KeyError if there is no such segment."""
+    for segment in segmentation["segments"]:
+        if segment.get("id") == segment_id:
+            return segment
+    raise KeyError("Segment not found by ID " + str(segment_id))
+
+
+def _find_segment(segmentation, segment):
+    """Segment (dict) specified by its dict, ID or name (an ID takes precedence over a name)."""
+    if isinstance(segment, dict):
+        return segment
+    try:
+        return segment_from_id(segmentation, segment)
+    except KeyError:
+        pass
+    found_segments = segments_from_name(segmentation, segment)
+    if not found_segments:
+        raise KeyError(f"Segment not found by ID or name: {segment}")
+    if len(found_segments) > 1:
+        raise KeyError(f"Several segments are named {segment}, specify the segment by ID")
+    return found_segments[0]
+
+
+def segment_mask(segmentation, segment):
+    """Get the binary mask of a segment.
+
+    :param segmentation: segmentation read by read_segmentation (with voxels)
+    :param segment: segment ID, segment name, or segment (dict)
+    :return: bool numpy array, with the shape and axis order of the spatial axes of the voxels array
+      (``voxels.shape[-3:]``; i, j, k axes for a segmentation read with the default index order)
+
+    Example::
+
+        segmentation = slicerio.read_segmentation("path/to/Segmentation.seg.nrrd")
+        lumen = slicerio.segment_mask(segmentation, "lumen")
+    """
+    voxels = segmentation["voxels"]
+    if voxels is None:
+        raise ValueError("Segmentation does not contain voxels")
+    segment = _find_segment(segmentation, segment)
+    label_value = segment.get("labelValue", 1)
+    if voxels.ndim == 4:
+        return voxels[segment.get("layer", 0)] == label_value
+    if voxels.ndim == 3:
+        return voxels == label_value
+    raise ValueError("Voxel array dimension is invalid")
+
+
+def create_segmentation(shape, ijk_to_lps, dtype="uint8"):
+    """Create an empty segmentation (no segments) on an image grid, for adding segments with add_segment.
+
+    :param shape: number of voxels along the i, j, k axes
+    :param ijk_to_lps: 4x4 matrix from voxel (i, j, k) to physical (LPS) coordinates
+    :return: segmentation dict that can be written by write_segmentation
+    """
+    import numpy as np
+    return {"voxels": np.zeros(tuple(shape), dtype=dtype), "ijkToLPS": np.asarray(ijk_to_lps, dtype=float), "segments": []}
+
+
+def add_segment(segmentation, mask, segment=None):
+    """Add a segment to a segmentation.
+
+    The segment is stored in the first layer of the segmentation where it does not overlap any other segment, otherwise in
+    a new layer (the voxels array becomes 4-dimensional), as 3D Slicer stores segments.
+
+    :param segmentation: segmentation (with voxels), for example from read_segmentation or create_segmentation
+    :param mask: bool array with the shape of the spatial axes of the voxels array (``voxels.shape[-3:]``)
+    :param segment: dict of segment fields, for example ``{"id": "lumen", "name": "lumen", "color": [0.8, 0.2, 0.2]}``;
+      a missing ID is generated, and the name is the ID if missing. labelValue, layer and extent are set by this function.
+    :return: the added segment (dict)
+    """
+    import numpy as np
+
+    voxels = segmentation["voxels"]
+    if voxels is None:
+        raise ValueError("Segmentation does not contain voxels")
+    mask = np.asarray(mask, dtype=bool)
+    if mask.shape != voxels.shape[-3:]:
+        raise ValueError(f"Mask shape {mask.shape} does not match the segmentation voxels {voxels.shape[-3:]}")
+    segments = segmentation.setdefault("segments", [])
+    segment = dict(segment or {})
+    if "id" not in segment:
+        segment["id"] = generate_unique_segment_id({s["id"] for s in segments if "id" in s})
+    if any(s.get("id") == segment["id"] for s in segments):
+        raise ValueError(f"Segment ID already exists: {segment['id']}")
+    segment.setdefault("name", segment["id"])
+
+    layers = voxels if voxels.ndim == 4 else voxels[np.newaxis]
+    max_label = np.iinfo(voxels.dtype).max if np.issubdtype(voxels.dtype, np.integer) else None
+    for layer_index in range(layers.shape[0]):
+        layer_segments = [s for s in segments if s.get("layer", 0) == layer_index]
+        label_value = max([s.get("labelValue", 1) for s in layer_segments], default=0) + 1
+        if (max_label is None or label_value <= max_label) and not np.any(layers[layer_index][mask]):
+            break
+    else:
+        # New layer
+        layers = np.concatenate([layers, np.zeros((1,) + layers.shape[1:], dtype=layers.dtype)])
+        layer_index, label_value = layers.shape[0] - 1, 1
+    layers[layer_index][mask] = label_value
+    segmentation["voxels"] = layers if layers.shape[0] > 1 else layers[0]
+
+    segment["labelValue"] = int(label_value)
+    segment["layer"] = int(layer_index)
+    if mask.any():
+        indices = np.nonzero(mask)
+        segment["extent"] = [int(v) for axis in indices for v in (axis.min(), axis.max())]
+    else:
+        segment["extent"] = [0, -1, 0, -1, 0, -1]
+    segments.append(segment)
+    return segment
 
 
 def extract_segments(segmentation, segment_names_to_label_values, minimalExtent=False):

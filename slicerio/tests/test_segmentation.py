@@ -169,6 +169,60 @@ class TestSegmentationRoundtrip(unittest.TestCase):
         import os
         os.remove(output_segmentation_filepath)
 
+    def test_segment_mask(self):
+        import numpy as np
+
+        segmentation = slicerio.read_segmentation(slicerio.get_testdata_file('SegmentationOverlapping.seg.nrrd'))
+        self.assertEqual(segmentation["voxels"].ndim, 4)
+        for segment in segmentation["segments"]:
+            # by ID, by name, and by the segment itself
+            mask = slicerio.segment_mask(segmentation, segment["id"])
+            self.assertEqual(mask.dtype, bool)
+            self.assertEqual(mask.shape, segmentation["voxels"].shape[1:])
+            expected = segmentation["voxels"][segment["layer"]] == segment["labelValue"]
+            self.assertTrue(np.array_equal(mask, expected))
+            self.assertTrue(np.array_equal(slicerio.segment_mask(segmentation, segment["name"]), expected))
+            self.assertTrue(np.array_equal(slicerio.segment_mask(segmentation, segment), expected))
+        with self.assertRaises(KeyError):
+            slicerio.segment_mask(segmentation, "no such segment")
+
+    def test_add_segment(self):
+        import numpy as np
+        import os
+        import tempfile
+
+        segmentation = slicerio.create_segmentation([40, 30, 20], [[0.5, 0, 0, 10], [0, 0.5, 0, 30], [0, 0, 0.8, 15], [0, 0, 0, 1]])
+        first = np.zeros([40, 30, 20], bool)
+        first[5:15, 5:15, 5:15] = True
+        second = np.zeros([40, 30, 20], bool)
+        second[20:30, 5:15, 5:15] = True
+        overlapping = np.zeros([40, 30, 20], bool)
+        overlapping[10:25, 10:20, 8:12] = True
+
+        slicerio.add_segment(segmentation, first, {"id": "first", "color": [1.0, 0.0, 0.0]})
+        added = slicerio.add_segment(segmentation, second, {"name": "second"})
+        # Segments that do not overlap share a layer
+        self.assertEqual(segmentation["voxels"].ndim, 3)
+        self.assertEqual((added["layer"], added["labelValue"]), (0, 2))
+        self.assertEqual(added["extent"], [20, 29, 5, 14, 5, 14])
+        # An overlapping segment goes into a new layer
+        added = slicerio.add_segment(segmentation, overlapping, {"id": "overlapping"})
+        self.assertEqual(segmentation["voxels"].shape, (2, 40, 30, 20))
+        self.assertEqual((added["layer"], added["labelValue"]), (1, 1))
+        with self.assertRaises(ValueError):
+            slicerio.add_segment(segmentation, first, {"id": "first"})
+
+        output_segmentation_filepath = tempfile.mktemp() + '.seg.nrrd'
+        try:
+            slicerio.write_segmentation(output_segmentation_filepath, segmentation)
+            stored = slicerio.read_segmentation(output_segmentation_filepath)
+        finally:
+            os.remove(output_segmentation_filepath)
+        self.assertEqual(slicerio.segment_names(stored), ["first", "second", "overlapping"])
+        for name, mask in (("first", first), ("second", second), ("overlapping", overlapping)):
+            self.assertTrue(np.array_equal(slicerio.segment_mask(stored, name), mask), name)
+        self.assertEqual(slicerio.segment_from_id(stored, "first")["color"], [1.0, 0.0, 0.0])
+
     def _assert_segmentations_equal(self, segmentation1, segmentation2):
         """Compare segmentation1 to segmentation2.
         Ignores segment attributes that are present in segmentation2 but not in segmentation1.
