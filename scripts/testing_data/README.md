@@ -9,13 +9,16 @@ software (for example [nibabel](https://github.com/nipy/nibabel/issues/356)).
 
 The data files are **not** stored in this repository. They are attached as assets to the
 [`TestingData` release](https://github.com/lassoan/slicerio/releases/tag/TestingData) of slicerio, together with
-`manifest.json` that describes every file (purpose, source, how it was made, SHA256, size, expected NRRD header
+`manifest_rev001.json` that describes every file (purpose, source, how it was made, SHA256, size, expected NRRD header
 fields, Slicer loader to use). Download pattern:
 
 ```
 https://github.com/lassoan/slicerio/releases/download/TestingData/<filename>
-https://github.com/lassoan/slicerio/releases/download/TestingData/manifest.json
+https://github.com/lassoan/slicerio/releases/download/TestingData/manifest_rev001.json
 ```
+
+The manifest carries a revision suffix so that later revisions of the data set can be published as additional
+assets of the same release, each described by its own `manifest_<revision>.json`.
 
 ## Files
 
@@ -23,7 +26,7 @@ All files were written by 3D Slicer 5.13 (2026-10) itself, except where the "Wri
 those are variants Slicer cannot write (true 2D images, RAS-space twins, 6-component symmetric tensors), derived
 with [pynrrd](https://github.com/mhe/pynrrd) from a Slicer-written file and then verified by loading them into
 Slicer. Every file loads in Slicer 5.13 and 5.12.4 (`check_test_data_in_slicer.py`). Sizes are approximate;
-`manifest.json` has exact sizes and SHA256 checksums.
+`manifest_rev001.json` has exact sizes and SHA256 checksums.
 
 | File | Kind | Space | Written by | Size | Description |
 |------|------|-------|------------|------|-------------|
@@ -86,7 +89,7 @@ Slicer. Every file loads in Slicer 5.13 and 5.12.4 (`check_test_data_in_slicer.p
   `measurement frame: (-1,0,0) (0,-1,0) (0,0,1)` maps them to the RAS space. This is the only RAS form that Slicer
   accepts as a transform: Slicer requires an identity measurement frame after conversion to LPS, and it ignores the
   measurement frame when loading vector volumes. A RAS file whose vector components are in RAS with an identity
-  measurement frame is valid NRRD but Slicer would flip its x/y components (see `notes` in `manifest.json`).
+  measurement frame is valid NRRD but Slicer would flip its x/y components (see `notes` in `manifest_rev001.json`).
 - **Displacement fields.** `displacement field type: resampling` (what Slicer writes) means the field is the
   *from-parent* transform: the output image value at physical position `p` is the input image sampled at
   `p + d(p)`, with `d` in LPS. The `*_resampled*` files were produced exactly this way and let you verify that a
@@ -108,8 +111,8 @@ Slicer. Every file loads in Slicer 5.13 and 5.12.4 (`check_test_data_in_slicer.p
 
 | Script | Runs in | Purpose |
 |--------|---------|---------|
-| `generate_test_data.py` | Slicer | Downloads the sources, derives and writes every file, verifies that each file round-trips (reload and compare voxels, geometry, segments, gradients, transforms) and that the displacement fields reproduce the stored resampled images, writes `manifest.json` into the output folder. |
-| `check_test_data_in_slicer.py` | Slicer | Reads `manifest.json` (release URL by default or a local path), downloads missing files (SHA256-verified), loads every file with the right loader and checks class, dimensions, components, frames, segments, layers, gradients and LPS/RAS twin geometry. |
+| `generate_test_data.py` | Slicer | Downloads the sources, derives and writes every file, verifies that each file round-trips (reload and compare voxels, geometry, segments, gradients, transforms) and that the displacement fields reproduce the stored resampled images, writes `manifest_<revision>.json` into the output folder. |
+| `check_test_data_in_slicer.py` | Slicer | Reads the manifest (`manifest_rev001.json` of the release by default, or a local path), downloads missing files (SHA256-verified), loads every file with the right loader and checks class, dimensions, components, frames, segments, layers, gradients and LPS/RAS twin geometry. |
 | `run_in_slicer.py` | host Python | Runs one of the scripts above inside a running Slicer through the Web Server module's `exec` endpoint (can also start Slicer). |
 
 ### Running
@@ -123,12 +126,12 @@ Slicer.exe --python-code "from WebServer import WebServerLogic; wsLogic = WebSer
 then, from the repository root (any Python with `requests`):
 
 ```
-python scripts/testing_data/run_in_slicer.py generate_test_data.py
-python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py --manifest .testing_data/manifest.json
+python scripts/testing_data/run_in_slicer.py generate_test_data.py --revision rev001
+python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py --manifest .testing_data/manifest_rev001.json
 python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py      # checks the published release
 ```
 
-`generate_test_data.py --only mrhead,dwi` regenerates selected groups only (`mrhead`, `visiblehuman`, `ctcardio`,
+`--revision` (required) names the data set revision used in the manifest file name. `generate_test_data.py --only mrhead,dwi` regenerates selected groups only (`mrhead`, `visiblehuman`, `ctcardio`,
 `displacement`, `segmentation`, `dwi`, `dti`); `--max-mb` sets the per-file size ceiling (default 10 MB).
 The `ctcardio` group needs the **SequenceRegistration** and **SlicerElastix** extensions (install them with the
 Extensions Manager). With a developer build of Slicer, their scripted modules can be loaded from source checkouts
@@ -137,19 +140,22 @@ instead: `--extra-module-paths "C:\path\SlicerElastix\Elastix\Elastix.py;C:\path
 `elastix` and `transformix` executables).
 Generated files go to the git-ignored `.testing_data/` folder in the repository root (`--output` overrides it);
 downloads are cached in `.testing_data/cache/`. The scripts can also be started without the web server:
-`Slicer.exe --no-main-window --python-script scripts/testing_data/generate_test_data.py -- --output <dir>`.
+`Slicer.exe --no-main-window --python-script scripts/testing_data/generate_test_data.py -- --revision rev001 --output <dir>`.
 
 ### Publishing a new version of the data
 
 1. Regenerate everything with a current Slicer build and make sure both scripts report success.
-2. Upload all files of `.testing_data/` (including `manifest.json`, excluding `cache/`) as assets of the `TestingData`
+2. Upload all files of `.testing_data/` (including `manifest_<revision>.json`, excluding `cache/`) as assets of the `TestingData`
    release, for example with the GitHub CLI:
 
    ```
-   gh release create TestingData --title "Testing data" --notes "NRRD test data sets, see scripts/testing_data/README.md" .testing_data/*.nrrd .testing_data/*.nhdr .testing_data/*.gz .testing_data/manifest.json
+   gh release create TestingData --title "Testing data" --notes "NRRD test data sets, see scripts/testing_data/README.md" .testing_data/*.nrrd .testing_data/*.nhdr .testing_data/*.gz .testing_data/manifest_rev001.json
    ```
 
-   (use `gh release upload TestingData --clobber ...` to update an existing release).
+   (use `gh release upload TestingData ...` to add files to the existing release). For a new revision of the data set,
+   run the generator with e.g. `--revision rev002`, give changed data files new names (release assets are addressed by
+   name, so an older manifest must keep pointing at unchanged files), upload the new files with `manifest_rev002.json`,
+   and update `MANIFEST_URL` in `check_test_data_in_slicer.py`.
 3. Run `check_test_data_in_slicer.py` without arguments to verify the published assets.
 
 The `TestingData` release tag is excluded from the PyPI publishing workflow (`.github/workflows/python-publish.yml`).

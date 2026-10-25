@@ -1,7 +1,7 @@
 """Check that every NRRD test data file of the slicerio ``TestingData`` release loads correctly in 3D Slicer.
 
-This script must run inside 3D Slicer. It reads ``manifest.json`` (from the GitHub release by default, or a local
-copy), downloads any missing file into a data folder (verifying the SHA256 checksum), loads each file with the
+This script must run inside 3D Slicer. It reads the data set manifest (``manifest_rev001.json`` of the GitHub release
+by default, or a local copy), downloads any missing file into a data folder (verifying the SHA256 checksum), loads each file with the
 loader the manifest names (volume / sequence / transform / segmentation), and checks node class, dimensions,
 number of components, voxel vector type, frame/segment/layer counts, gradient counts and that LPS/RAS twin files
 load to the same geometry. Headers are also re-read with pynrrd and compared with the manifest.
@@ -9,7 +9,7 @@ load to the same geometry. Headers are also re-read with pynrrd and compared wit
 Run from the host with::
 
     python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py                       # published release
-    python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py --manifest .testing_data/manifest.json
+    python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py --manifest .testing_data/manifest_rev001.json
 
 or directly: ``Slicer.exe --no-main-window --python-script check_test_data_in_slicer.py -- [options]``.
 """
@@ -29,7 +29,7 @@ import vtk
 import slicer
 import slicer.util
 
-MANIFEST_URL = "https://github.com/lassoan/slicerio/releases/download/TestingData/manifest.json"
+MANIFEST_URL = "https://github.com/lassoan/slicerio/releases/download/TestingData/manifest_rev001.json"
 
 VECTOR_TYPE_NAMES = {
     slicer.vtkMRMLVolumeNode.VoxelVectorTypeUndefined: "Undefined",
@@ -279,7 +279,7 @@ class Checker:
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Check slicerio NRRD test data in 3D Slicer")
-    parser.add_argument("--manifest", default=MANIFEST_URL, help="manifest.json URL or local path")
+    parser.add_argument("--manifest", default=MANIFEST_URL, help="manifest URL or local path (default: the published manifest_rev001.json)")
     parser.add_argument("--data-dir", default=None, help="folder holding (or receiving) the data files; default: next to a local manifest, "
                         "or <repository root>/.testing_data/downloaded for a remote manifest")
     parser.add_argument("--only", default=None, help="comma-separated list of file names to check")

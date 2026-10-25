@@ -4,17 +4,17 @@ This script must run inside 3D Slicer (tested with Slicer 5.13 / 2026-10). It do
 SampleData module (and Visible Human cryosections from NLM), derives smaller but still realistic data sets of many
 kinds (2D, 2D+t, color, 3D with anisotropic spacing and with oblique axes, 3D+t, displacement/velocity fields, segmentations, DWI, DTI, LPS and RAS), writes them
 with Slicer's own file writers, verifies that every file round-trips (reload and compare) and that displacement
-fields warp images exactly as the stored reference images, and finally writes ``manifest.json`` describing all
+fields warp images exactly as the stored reference images, and finally writes ``manifest_<revision>.json`` describing all
 outputs. The output folder (``<repository root>/.testing_data`` by default, git-ignored) is meant to be uploaded as
 assets of the ``TestingData`` GitHub release of slicerio.
 
 Run it from the host with::
 
-    python scripts/testing_data/run_in_slicer.py generate_test_data.py
+    python scripts/testing_data/run_in_slicer.py generate_test_data.py --revision rev001
 
 or directly::
 
-    Slicer.exe --no-main-window --python-script scripts/testing_data/generate_test_data.py -- --output <dir>
+    Slicer.exe --no-main-window --python-script scripts/testing_data/generate_test_data.py -- --revision rev001 --output <dir>
 
 Options::
 
@@ -22,6 +22,7 @@ Options::
     --only A,B,...      generate only the listed groups (mrhead, visiblehuman, ctcardio, displacement, segmentation,
                         dwi, dti). The manifest is rebuilt from all files present in the output folder.
     --max-mb N          per-file size ceiling in MB (default 10); generation fails if a file is larger.
+    --revision REV      (required) data set revision, e.g. rev001; used in the manifest file name.
     --extra-module-paths A.py;B.py
                         load scripted modules from source files first (Elastix.py, SequenceRegistration.py) when the
                         SlicerElastix / SequenceRegistration extensions are not installed (the Elastix module must find
@@ -54,6 +55,8 @@ import SampleData
 
 RELEASE_TAG = "TestingData"
 RELEASE_BASE_URL = f"https://github.com/lassoan/slicerio/releases/download/{RELEASE_TAG}/"
+# The data set revision (e.g. "rev001") is a required argument: the manifest is named manifest_<revision>.json so that
+# later revisions can be published as additional assets of the same release.
 VISIBLE_HUMAN_URL = "https://data.lhncbc.nlm.nih.gov/public/Visible-Human/Male-Images/PNG_format/head/"
 # Output never goes next to the source files: default is the git-ignored .testing_data folder in the repository root
 DEFAULT_OUTPUT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".testing_data"))
@@ -72,8 +75,9 @@ HEADER_KEYS = ("type", "dimension", "space", "space dimension", "sizes", "kinds"
 
 class Generator:
 
-    def __init__(self, output_dir, max_mb):
+    def __init__(self, output_dir, max_mb, revision):
         self.output_dir = os.path.abspath(output_dir)
+        self.revision = revision
         self.cache_dir = os.path.join(self.output_dir, "cache")
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(self.cache_dir, exist_ok=True)
@@ -1211,7 +1215,7 @@ class Generator:
     # ------------------------------------------------------------------------------------------------------------
     def write_manifest(self):
         existing = {}
-        mp = self.path("manifest.json")
+        mp = self.path(f"manifest_{self.revision}.json")
         if os.path.exists(mp):
             with open(mp) as f:
                 try:
@@ -1225,6 +1229,7 @@ class Generator:
         files = [self.entries[k] for k in sorted(self.entries)]
         manifest = {
             "release": RELEASE_TAG,
+            "revision": self.revision,
             "base_url": RELEASE_BASE_URL,
             "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "generator": "slicerio/scripts/testing_data/generate_test_data.py",
@@ -1235,7 +1240,7 @@ class Generator:
         with open(mp, "w") as f:
             json.dump(manifest, f, indent=2)
         total = sum(e["size_bytes"] for e in files)
-        self.log(f"manifest.json: {len(files)} files, {total/1e6:.1f} MB total")
+        self.log(f"{os.path.basename(mp)}: {len(files)} files, {total/1e6:.1f} MB total")
         return manifest
 
 
@@ -1260,6 +1265,7 @@ def main(argv):
     parser.add_argument("--output", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--only", default=",".join(GROUPS))
     parser.add_argument("--max-mb", type=float, default=10.0)
+    parser.add_argument("--revision", required=True, help="data set revision, e.g. rev001; the manifest is written as manifest_<revision>.json")
     parser.add_argument("--extra-module-paths", default="",
                         help="';'-separated paths of scripted module .py files to load before generating (e.g. Elastix.py and "
                              "SequenceRegistration.py from source checkouts when the extensions are not installed)")
@@ -1271,7 +1277,7 @@ def main(argv):
         if g not in GROUPS:
             raise SystemExit(f"unknown group {g}; choose from {GROUPS}")
 
-    gen = Generator(args.output, args.max_mb)
+    gen = Generator(args.output, args.max_mb, args.revision)
     start = time.time()
     slicer.mrmlScene.Clear(False)
     generators = {"mrhead": gen.generate_mrhead, "visiblehuman": gen.generate_visible_human, "ctcardio": gen.generate_ctcardio,

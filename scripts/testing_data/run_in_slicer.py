@@ -2,8 +2,8 @@
 
 Usage (from the repository root)::
 
-    python scripts/testing_data/run_in_slicer.py generate_test_data.py
-    python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py --manifest .testing_data/manifest.json
+    python scripts/testing_data/run_in_slicer.py generate_test_data.py --revision rev001
+    python scripts/testing_data/run_in_slicer.py check_test_data_in_slicer.py --manifest .testing_data/manifest_rev001.json
 
 Slicer must be running with the Web Server module's "Slicer API exec" endpoint enabled, for example::
 
