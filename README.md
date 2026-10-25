@@ -6,7 +6,7 @@
 
 Python utilities for [3D Slicer](https://www.slicer.org) interoperability.
 
-The package contains utility functions for reading and writing segmentation files and convenience functions for using 3D Slicer via its web API. More functions will be added in the future.
+The package contains utility functions for reading and writing segmentation files and image volumes (scalar, color, vector and tensor images, displacement fields, time sequences) in NRRD format, and convenience functions for using 3D Slicer via its web API.
 
 See [this page](UsingStandardTerminology.md) to learn more about how standard terms can be used to describe content of segmentation files.
 
@@ -208,6 +208,45 @@ segmentation["segments"] = [
 
 slicerio.write_segmentation(output_filename, segmentation)
 ```
+
+### Read and write image volumes (scalar, color, vector, tensor, sequences)
+
+`read_volume` reads any NRRD image that 3D Slicer writes into a dict: `voxels` (numpy array in NRRD axis order:
+component axis first if any, then the spatial axes i, j, k, then the time axis last for sequences), `ijkToLPS`
+(4x4 voxel to physical matrix, always LPS even for files stored in RAS), `spaceDimension` (2 or 3), and metadata:
+`component` (`kind`, `label`, `unit` of the component axis, e.g. `RGB-color`, `RGBA-color`, `vector`, `3D-matrix`, `list`),
+`measurementFrame`, `sequence` (index name, unit, type and values of the time axis), `displacementFieldType` and
+`intentCode` for displacement fields, and all other header fields as they are. `write_volume` writes such a dict
+back in LPS (default) or RAS.
+
+```python
+import slicerio
+
+# 3D+t velocity field sequence (Slicer .seq.nrrd): 3 vector components x 64 x 52 x 36 voxels x 5 frames
+velocity = slicerio.read_volume("CTCardio_3Dt_velocity.seq.nrrd")
+print(velocity["voxels"].shape, velocity["component"])  # (3, 64, 52, 36, 5) {'kind': 'vector', 'label': 'velocity', 'unit': 'mm/s'}
+print(velocity["sequence"]["indexValues"])              # ['0.0', '0.1', '0.2', '0.3', '0.4']
+frame = slicerio.sequence_frame(velocity, 2)             # one frame as a 3D vector volume
+vectors_lps = slicerio.component_vectors_to_lps(frame)   # measurement frame applied (identity for Slicer-written LPS files)
+
+# Color image: component axis kind RGBA-color, voxel array (4, 190, 200, 80)
+rgba = slicerio.read_volume("VisibleHumanHead_3D_RGBA.nrrd")
+
+# Displacement field written by Slicer (Transforms module) and its application to an image
+image = slicerio.read_volume("MRHead_3D.nrrd")
+field = slicerio.read_volume("MRHead_displacement.nrrd")  # field["displacementFieldType"] == "resampling"
+warped = slicerio.apply_displacement_field(image, field)   # same as hardening the transform on the volume in Slicer
+slicerio.write_volume("MRHead_warped.nrrd", warped)
+
+# Build and write a sequence; write a volume in RAS instead of LPS
+sequence = slicerio.create_sequence([frame_a, frame_b], index_values=[0.0, 0.5], index_name="time", index_unit="s")
+slicerio.write_volume("sequence.seq.nrrd", sequence)
+slicerio.write_volume("image_ras.nrrd", image, space="RAS")
+```
+
+The files used above are part of the [TestingData release](https://github.com/lassoan/slicerio/releases/tag/TestingData)
+(see [its documentation](scripts/testing_data/README_rev001.md)); `slicerio.get_testdata_file("MRHead_3D.nrrd")`
+downloads a file of the release into `~/.cache/slicerio/testdata` (or `SLICERIO_TESTDATA_CACHE`) on first use and returns its path.
 
 ### Convert legacy markup fiducial file (.fcsv) to current format (.mrk.json)
 
