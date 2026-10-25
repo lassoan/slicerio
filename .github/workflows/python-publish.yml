@@ -10,6 +10,10 @@ on:
 jobs:
   pypi-publish:
 
+    # Only version releases are published to PyPI. The 'TestingData' release holds test data assets
+    # (see scripts/testing_data/README.md) and must not trigger a package upload.
+    if: github.event.release.tag_name != 'TestingData'
+
     runs-on: ubuntu-latest
 
     environment:

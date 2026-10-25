@@ -62,3 +62,6 @@ target/
 
 # Virtual environment
 .venv
+
+# Generated NRRD testing data (uploaded as GitHub release assets, see scripts/testing_data/README.md)
+/.testing_data/
