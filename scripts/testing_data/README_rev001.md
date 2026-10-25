@@ -173,6 +173,8 @@ terminology tags) and `Segmentation_*` fields (source representation, conversion
 - **Sequences.** Slicer appends the time axis as the last axis with kind `list`; the component axis (color, vector)
   is the first axis. Frame index values are in `axis 3 index values` (or `axis 2 index values` for 2D+t).
 
+<a id="file-table"></a>
+
 ## Files
 
 Axes are given in NRRD order (`sizes` / `kinds`). Spacing is the length of the `space directions` vectors.
